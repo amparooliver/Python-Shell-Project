@@ -9,26 +9,45 @@ import sys
 from constants import SHELL_STATUS_RUN, SHELL_STATUS_STOP
 
 # FUNCIONES #
-########################################
+################################################################################
 def exits(args):
     return SHELL_STATUS_STOP
-########################################
+################################################################################
+# os.path.abspath(path) Returns normalized and absolute version of path.
+# os.chdir Change the current working directory to path.
+# os.getenv Return the value of the environment variable key if it exists.
 def ir(args):
     if len(args) > 0:
-        os.chdir(args[0])
+        os.chdir(os.path.abspath(args[0]))
     else:
         os.chdir(os.getenv('HOME'))
     return SHELL_STATUS_RUN
-########################################
+################################################################################
+# os.mkdir Create a directory named path.
 def creardir(args):
     try: 
         os.mkdir(args[0]) 
     except OSError as error: 
         print(error)  
     return SHELL_STATUS_RUN
-########################################
-#def listar(args):
-
+################################################################################
+# os.listdir Return a list containing the names of the entries in path.
+def listar(args):
+    try: 
+        dir_list = os.listdir(os.path.abspath(args[0])) 
+        print(dir_list)
+    except OSError as error: 
+        print(error)  
+    return SHELL_STATUS_RUN
+################################################################################
+# os.rename Rename the file or directory src to dst.
+def renombrar(args):
+    try: 
+        os.rename(os.path.abspath(args[0]), os.path.abspath(args[1]))
+    except OSError as error: 
+        print(error)  
+    return SHELL_STATUS_RUN
+################################################################################
 
 # Hash map to store built-in function name and reference as key and value
 built_in_cmds = {}
@@ -124,6 +143,8 @@ def init():
     register_command("ir", ir)
     register_command("creardir", creardir)
     register_command("exit", exits)
+    register_command("listar", listar)
+    register_command("renombrar", renombrar)
 
 def main():
     # Init shell before starting the main loop
