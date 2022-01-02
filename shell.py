@@ -5,6 +5,7 @@ import signal
 import socket
 import subprocess
 import sys
+import shutil
 
 from constants import SHELL_STATUS_RUN, SHELL_STATUS_STOP
 
@@ -44,6 +45,14 @@ def listar(args):
 def renombrar(args):
     try: 
         os.rename(os.path.abspath(args[0]), os.path.abspath(args[1]))
+    except OSError as error: 
+        print(error)  
+    return SHELL_STATUS_RUN
+################################################################################
+# Recursively move a file or directory src to dst.
+def mover(args):
+    try: 
+        shutil.move(os.path.abspath(args[0]), os.path.abspath(args[1]))
     except OSError as error: 
         print(error)  
     return SHELL_STATUS_RUN
@@ -145,6 +154,7 @@ def init():
     register_command("exit", exits)
     register_command("listar", listar)
     register_command("renombrar", renombrar)
+    register_command("mover", mover)
 
 def main():
     # Init shell before starting the main loop
