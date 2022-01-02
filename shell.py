@@ -49,10 +49,18 @@ def renombrar(args):
         print(error)  
     return SHELL_STATUS_RUN
 ################################################################################
-# Recursively move a file or directory src to dst.
+# shutil.move Recursively move a file or directory src to dst.
 def mover(args):
     try: 
         shutil.move(os.path.abspath(args[0]), os.path.abspath(args[1]))
+    except OSError as error: 
+        print(error)  
+    return SHELL_STATUS_RUN
+################################################################################
+# shutil.copy Copies the file src to the file or directory dst. 
+def copiar(args):
+    try: 
+        shutil.copy(args[0], os.path.abspath(args[1]))
     except OSError as error: 
         print(error)  
     return SHELL_STATUS_RUN
@@ -155,6 +163,7 @@ def init():
     register_command("listar", listar)
     register_command("renombrar", renombrar)
     register_command("mover", mover)
+    register_command("copiar", copiar)
 
 def main():
     # Init shell before starting the main loop
