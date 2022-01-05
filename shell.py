@@ -11,10 +11,7 @@ import subprocess
 import sys
 
 from constants import SHELL_STATUS_RUN, SHELL_STATUS_STOP
-from logger import sysError_logger
-from logger import usuario_logger
-
-usuario_logger.error("FUNCIONAAAAAAAAAA")
+from logger import sysError_logger, usuario_logger
 
 # COMMANDS #
 ################################################################################
@@ -181,7 +178,36 @@ def grupos(args):
     return SHELL_STATUS_RUN
 
 ################################################################################
-#def permisos(args):
+
+def permisos(args):
+    if len(args) < 2:
+            print("permisos: Missing arguments")
+            sysError_logger.error("permisos: Missing arguments")
+            return SHELL_STATUS_RUN
+    elif len(args) > 2:
+            print("permisos: Too many arguments")
+            sysError_logger.error("permisos: Too many arguments")
+            return SHELL_STATUS_RUN
+    elif len(args) == 2:
+        path = os.path.abspath(args[1])
+        mode = (args[0])
+        if mode == "+r":
+            print("prueba")
+        elif mode == "-r":
+            print("prueba")
+        elif mode == "+w":
+            print("prueba")
+        elif mode == "-w":
+            print("prueba")
+        elif mode == "+x":
+            print("prueba")
+        elif mode == "-x":
+            print("prueba")
+        elif mode == "+rwx":
+            print("prueba")
+        elif mode == "-rwx":
+            print("prueba")
+    return SHELL_STATUS_RUN
 
 ################################################################################
 # os.path.isfile('file') Checks if file exists
@@ -211,12 +237,29 @@ def difer(args):
     return SHELL_STATUS_RUN
 
 ################################################################################
+
 def usuario(args):
-    # Check if current user is root
-    if os.geteuid() == 0:
-        print("ok")
-    else:
-        print("usuario: User must have root privileges")
+    if len(args) > 0:
+        print("usuario: To many arguments")
+        sysError_logger.error("usuario: To many arguments")
+    else:        
+        # Check if current user is root
+        if os.geteuid() == 0:
+            # Ask for the input
+            username = input("Enter Username: ")   
+            # Asking for users password
+            password = getpass.getpass()   
+            try:
+                # executing useradd command using subprocess module
+                subprocess.run(['useradd', '-p', password, username ])      
+            except:
+                print("usuario: Failed to add user")                     
+                sysError_logger.error("usuario: Failed to add user")
+        else:
+            print("usuario: User must have root privileges")
+            sysError_logger.errorprint("usuario: User must have root privileges")
+    return SHELL_STATUS_RUN
+
 ################################################################################
 
 # Hash map to store built-in function name and reference as key and value
@@ -320,6 +363,8 @@ def init():
     register_command("copiar", copiar)
     register_command("grupos", grupos)
     register_command("difer", difer)
+    register_command("permisos", permisos)
+    register_command("usuario", usuario)
 
 def main():
     # Init shell before starting the main loop
