@@ -6,10 +6,10 @@ import shlex
 import shutil
 import signal
 import socket
+import stat
 import subprocess
 import sys
-import stat
-
+import difflib
 
 from constants import SHELL_STATUS_RUN, SHELL_STATUS_STOP
 
@@ -27,18 +27,17 @@ def exits(args):
 # os.path.isdir Return True if path is an existing directory.
 
 def ir(args):
-    # Check if path exists
-    if os.path.isdir(os.path.abspath(args[0])):
-        if 0 < len(args) < 2:
-            try:
-                os.chdir(os.path.abspath(args[0]))
-            except OSError as error: 
-                print(error)
-                logging.exception(error)
-        else:
-            os.chdir(os.getenv('HOME'))
-    else:
-        print("ir: Path does not exist")
+    if len(args) > 1:
+        print("ir: Too many arguments")
+        return SHELL_STATUS_RUN
+    elif len(args) == 0:
+        os.chdir(os.getenv('HOME'))
+    elif len(args) == 1:
+        try:
+            os.chdir(os.path.abspath(args[0]))
+        except OSError as error: 
+            print(error)
+            logging.exception(error)
     return SHELL_STATUS_RUN
 
 ################################################################################
@@ -123,6 +122,12 @@ def mover(args):
 # shutil.copy Copies the file src to the file or directory dst. 
 
 def copiar(args):
+    if len(args) < 2:
+        print("copiar: Missing arguments")
+        return SHELL_STATUS_RUN
+    elif len(args) > 2:
+        print("copiar: Too many arguments")
+        return SHELL_STATUS_RUN
     try: 
         shutil.copy(os.path.abspath(args[0]), os.path.abspath(args[1]))
     except OSError as error: 
@@ -174,12 +179,26 @@ def grupos(args):
 #def permisos(args):
 
 ################################################################################
-def differ(args):
-    if args == 2:
-        print("Bien")
-    elif args < 2:
+# os.path.isfile('file') Checks if file exists
+
+def difer(args):
+    if len(args) == 2:
+        text1 = os.path.abspath(args[0])
+        text2 = os.path.abspath(args[1])
+        if(os.path.isfile(text1) and os.path.isfile(text2)):
+            with open(text1) as file_1:
+                file_1_text = file_1.readlines()
+            with open(text2) as file_2:
+                file_2_text = file_2.readlines() 
+            # Find and print the diff:
+            for line in difflib.unified_diff(file_1_text, file_2_text, 
+            fromfile= text1, tofile= text2, lineterm=''):
+                print(line)
+        else:
+            print("differ: File does not exist")
+    elif len(args) < 2:
         print("differ: Missing arguments")
-    elif args > 2:
+    elif len(args) > 2:
         print("differ: To many arguments")
     return SHELL_STATUS_RUN
 
@@ -285,6 +304,7 @@ def init():
     register_command("mover", mover)
     register_command("copiar", copiar)
     register_command("grupos", grupos)
+    register_command("difer", difer)
 
 def main():
     # Init shell before starting the main loop
