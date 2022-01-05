@@ -1,5 +1,5 @@
+import difflib
 import getpass
-import logging
 import os
 import pwd
 import shlex
@@ -9,12 +9,12 @@ import socket
 import stat
 import subprocess
 import sys
-import difflib
 
 from constants import SHELL_STATUS_RUN, SHELL_STATUS_STOP
+from logger import sysError_logger
+from logger import usuario_logger
 
-logging.basicConfig(filename='sistema_error.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
-
+usuario_logger.error("FUNCIONAAAAAAAAAA")
 
 # COMMANDS #
 ################################################################################
@@ -29,6 +29,7 @@ def exits(args):
 def ir(args):
     if len(args) > 1:
         print("ir: Too many arguments")
+        sysError_logger.error("ir: Too many arguments")
         return SHELL_STATUS_RUN
     elif len(args) == 0:
         os.chdir(os.getenv('HOME'))
@@ -37,7 +38,7 @@ def ir(args):
             os.chdir(os.path.abspath(args[0]))
         except OSError as error: 
             print(error)
-            logging.exception(error)
+            sysError_logger.exception(error)
     return SHELL_STATUS_RUN
 
 ################################################################################
@@ -48,7 +49,7 @@ def creardir(args):
         os.mkdir(args[0]) 
     except OSError as error: 
         print(error)  
-        logging.exception(error)
+        sysError_logger.exception(error)
     return SHELL_STATUS_RUN
 
 ################################################################################
@@ -60,6 +61,7 @@ def listar(args):
         path = os.getcwd()
     elif len(args) > 1:
         print("listar: Too many arguments")
+        sysError_logger.error("listar: Too many arguments")
         return SHELL_STATUS_RUN
     else:
         # Check if path exists
@@ -68,13 +70,14 @@ def listar(args):
                 path = os.path.abspath(args[0])
         else:
             print("listar: Path does not exist")
+            sysError_logger.error("listar: Path does not exist")
             return SHELL_STATUS_RUN
     try: 
         dir_list = os.listdir(path) 
         print(dir_list)
     except OSError as error: 
         print(error)
-        logging.exception(error)  
+        sysError_logger.exception(error)  
     return SHELL_STATUS_RUN
 
 ################################################################################
@@ -83,18 +86,17 @@ def listar(args):
 def renombrar(args):
     if len(args) < 2:
         print("renombrar: Missing arguments")
+        sysError_logger.error("renombrar: Missing arguments")
         return SHELL_STATUS_RUN
     elif len(args) > 2:
         print("renombrar: Too many arguments")
+        sysError_logger.error("renombrar: Too many arguments")
         return SHELL_STATUS_RUN
-    # Check if path exists
-    if os.path.isdir(os.path.abspath(args[0])):
-        try: 
-            os.rename(os.path.abspath(args[0]), os.path.abspath(args[1]))
-        except OSError as error: 
-            print(error)
-    else:
-        print("renombrar: Path does not exist")
+    try: 
+        os.rename(os.path.abspath(args[0]), os.path.abspath(args[1]))
+    except OSError as error: 
+        print(error)
+        sysError_logger.exception(error)  
     return SHELL_STATUS_RUN
 
 ################################################################################
@@ -103,19 +105,17 @@ def renombrar(args):
 def mover(args):
     if len(args) < 2:
         print("mover: Missing arguments")
+        sysError_logger.error("mover: Missing arguments")
         return SHELL_STATUS_RUN
     elif len(args) > 2:
         print("mover: Too many arguments")
+        sysError_logger.error("mover: Too many arguments")
         return SHELL_STATUS_RUN
-    # Check if src path exists
-    if os.path.isdir(os.path.abspath(args[0])):
-        try: 
-            shutil.move(os.path.abspath(args[0]), os.path.abspath(args[1]))
-        except OSError as error: 
-            print(error) 
-            logging.exception(error) 
-    else:
-        print("mover: Path does not exist")
+    try: 
+        shutil.move(os.path.abspath(args[0]), os.path.abspath(args[1]))
+    except OSError as error: 
+        print(error) 
+        sysError_logger.exception(error) 
     return SHELL_STATUS_RUN
 
 ################################################################################
@@ -124,15 +124,17 @@ def mover(args):
 def copiar(args):
     if len(args) < 2:
         print("copiar: Missing arguments")
+        sysError_logger.error("copiar: Missing arguments")
         return SHELL_STATUS_RUN
     elif len(args) > 2:
         print("copiar: Too many arguments")
+        sysError_logger.error("copiar: Too many arguments")
         return SHELL_STATUS_RUN
     try: 
         shutil.copy(os.path.abspath(args[0]), os.path.abspath(args[1]))
     except OSError as error: 
         print(error) 
-        logging.exception(error) 
+        sysError_logger.exception(error) 
     return SHELL_STATUS_RUN
 
 ################################################################################
@@ -147,6 +149,7 @@ def grupos(args):
             pwd.getpwnam(user)
         except KeyError:
             print("grupos: User does not exist")
+            sysError_logger.error("grupos: User does not exist")
             return SHELL_STATUS_RUN
         # Get gid for user
         gid = pwd.getpwnam(user).pw_gid
@@ -158,6 +161,7 @@ def grupos(args):
             pwd.getpwnam(user)
         except KeyError:
             print("grupos: User does not exist")
+            sysError_logger.error("grupos: User does not exist")
             return SHELL_STATUS_RUN
         gid = int(args[1])
     # if there are no arguments, gets current user and gid
@@ -166,13 +170,14 @@ def grupos(args):
         gid = pwd.getpwnam(user).pw_gid
     elif len(args) > 2:
         print("grupos: Too many arguments")
+        sysError_logger.error("grupos: Too many arguments")
         return SHELL_STATUS_RUN
     try: 
         group_list = os.getgrouplist(user, gid) 
         print(group_list)
     except OSError as error: 
         print(error)  
-        logging.exception(error)
+        sysError_logger.exception(error)
     return SHELL_STATUS_RUN
 
 ################################################################################
@@ -195,13 +200,23 @@ def difer(args):
             fromfile= text1, tofile= text2, lineterm=''):
                 print(line)
         else:
-            print("differ: File does not exist")
+            print("difer: File does not exist")
+            sysError_logger.error("difer: File does not exist")
     elif len(args) < 2:
-        print("differ: Missing arguments")
+        print("difer: Missing arguments")
+        sysError_logger.error("difer: Missing arguments")
     elif len(args) > 2:
-        print("differ: To many arguments")
+        print("difer: To many arguments")
+        sysError_logger.error("difer: To many arguments")
     return SHELL_STATUS_RUN
 
+################################################################################
+def usuario(args):
+    # Check if current user is root
+    if os.geteuid() == 0:
+        print("ok")
+    else:
+        print("usuario: User must have root privileges")
 ################################################################################
 
 # Hash map to store built-in function name and reference as key and value
@@ -287,7 +302,7 @@ def shell_loop():
         except:
             _, err, _ = sys.exc_info()
             print(err)
-            logging.exception(err)
+            #logging.exception(err)
 
 
 # Register a built-in function to built-in command hash map

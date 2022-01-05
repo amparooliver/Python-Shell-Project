@@ -1,9 +1,0 @@
-root - ERROR - list index out of range
-Traceback (most recent call last):
-  File "/home/aoliver/Documents/so1/REPOSITORIO/SO1/shell.py", line 287, in shell_loop
-    status = execute(cmd_tokens)
-  File "/home/aoliver/Documents/so1/REPOSITORIO/SO1/shell.py", line 238, in execute
-    return built_in_cmds[cmd_name](cmd_args)
-  File "/home/aoliver/Documents/so1/REPOSITORIO/SO1/shell.py", line 31, in ir
-    if os.path.isdir(os.path.abspath(args[0])):
-IndexError: list index out of range
