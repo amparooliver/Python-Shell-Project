@@ -11,6 +11,7 @@ import stat
 import subprocess
 import sys
 import time
+import datetime
 
 from constants import SHELL_STATUS_RUN, SHELL_STATUS_STOP
 from logger import sysError_logger, usuario_logger
@@ -295,7 +296,6 @@ def usuario(args):
             username = args[0]
             paths = ["/etc/shadow","/etc/passwd","/etc/group"]
             files = []
-
             for i in paths:
                 files.append(readFile(i))
             for i in range(3):
@@ -317,19 +317,22 @@ def usuario(args):
                 os.mkdir(homePath,int('755',8))
 
             # Ask Personal information
-            fullname=str(input("Fullname: "))
+            fullname=input("Fullname: ")
             workphone=input("Workphone:")
             cellphone=input("Personal Cellphone: ")
-            inihour=input("Start work time HH:MM: ")
-            inihour=inihour.replace(":","")
-            finhour=input("Off-work time HH:MM: ")
-            finhour=finhour.replace(":","")
+            sWork=input("Start work time HH:MM: ")
+            sWork=sWork.replace(":","")
+            oWork=input("Off-work time HH:MM: ")
+            oWork=oWork.replace(":","")
+            # Append to files
             for i in range(3):
                 files[i] = open(paths[i],"a+")
+
+            epoch = int(time.time())
             # The information is written in the corresponding files
-            files[0].write(username + ":!:"+ int(time()/86400)+ ":0:99999:7:::\n")
-            files[1].write(username + ":!:" + userID + ":" + groupID + ":" + fullname + workphone + cellphone + "," + inihour+ "," + finhour +":"+ homePath +":/bin/bash\n")
-            files[2].write(username + ":x:" + groupID + ":\n")
+            files[0].write(f"{username}:!:{epoch}:0:99999:7:::\n")
+            files[1].write(f"{username}:!:{userID}:{groupID}:{fullname},{workphone},{cellphone},{sWork},{oWork}:{homePath}:/bin/bash\n")
+            files[2].write(f"{username}:x:{groupID}:\n")
         else:
             print("usuario: User does not have root privileges")
             sysError_logger.error("usuario: User does not have root privileges")
