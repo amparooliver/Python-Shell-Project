@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import difflib
 import getpass
 import os
@@ -10,9 +10,51 @@ import socket
 import stat
 import subprocess
 import sys
+import time
 
 from constants import SHELL_STATUS_RUN, SHELL_STATUS_STOP
 from logger import sysError_logger, usuario_logger
+
+# FUNCTIONS #
+################################################################################
+def readFile(filename):
+    with open(filename) as file:
+        lines = file.readlines() 
+        lines = [line.rstrip() for line in lines]
+    return lines
+################################################################################
+def processText(text):
+    processedText = list(text)
+    for i in range(len(processedText)):
+        processedText[i] = processedText[i].split(':')
+    return processedText
+################################################################################
+def getNewUserID():#requiere root
+    passwdPath = "/etc/passwd"
+    passwd = open(passwdPath,"r")
+    userID = 0
+    passwd = readFile(passwdPath)  
+    #print(len(passwd))
+    for i in range(len(passwd)):
+        passwd[i] = passwd[i].split(':')
+    for i in range(len(passwd)):
+        if userID < int(passwd[i][2]):
+            userID = int(passwd[i][2])
+    return userID + 1
+################################################################################
+def getNewGroupID():#requiere root
+    groupPath = "/etc/group"
+    groupID = 0
+    with open(groupPath) as file:
+        group = file.readlines()
+        group = [group.rstrip() for group in group]
+    for i in range(len(group)):
+        group[i] = group[i].split(':')
+    for i in range(len(group)):
+        if groupID < int(group[i][2]):
+            groupID = int(group[i][2])
+    return groupID + 1
+################################################################################
 
 # COMMANDS #
 ################################################################################
@@ -240,25 +282,58 @@ def difer(args):
 ################################################################################
 
 def usuario(args):
-    if len(args) > 0:
+    if len(args) > 1:
         print("usuario: Too many arguments")
         sysError_logger.error("usuario: Too many arguments")
+    elif len(args) < 1:
+        print("usuario: Missing arguments")
+        sysError_logger.error("usuario: Missing arguments")
     else:        
         # Check if current user is root
         if os.geteuid() == 0:
-            # Ask for the input
-            username = input("Enter Username: ")   
-            # Asking for users password
-            password = getpass.getpass()   
-            try:
-                # executing useradd command using subprocess module
-                subprocess.run(['useradd', '-p', password, username ])      
-            except:
-                print("usuario: Failed to add user")                     
-                sysError_logger.error("usuario: Failed to add user")
+            # Set variables
+            username = args[0]
+            paths = ["/etc/shadow","/etc/passwd","/etc/group"]
+            files = []
+
+            for i in paths:
+                files.append(readFile(i))
+            for i in range(3):
+                files[i] = processText(files[i])
+            # Check if user already exists
+            for i in range(len(files[2])):
+                #print(files[2][i])
+                if files[2][i][0] == username:
+                    sysError_logger.error(username + " already exists")
+                    return SHELL_STATUS_RUN
+
+            # Get new user ID group ID
+            userID = getNewUserID()
+            groupID = getNewGroupID()
+
+            # New home directory for User
+            homePath = "/home/" + username 
+            if(os.path.exists(homePath) == False):
+                os.mkdir(homePath,int('755',8))
+
+            # Ask Personal information
+            fullname=str(input("Fullname: "))
+            workphone=input("Workphone:")
+            cellphone=input("Personal Cellphone: ")
+            inihour=input("Start work time HH:MM: ")
+            inihour=inihour.replace(":","")
+            finhour=input("Off-work time HH:MM: ")
+            finhour=finhour.replace(":","")
+            for i in range(3):
+                files[i] = open(paths[i],"a+")
+            # The information is written in the corresponding files
+            files[0].write(username + ":!:"+ int(time()/86400)+ ":0:99999:7:::\n")
+            files[1].write(username + ":!:" + userID + ":" + groupID + ":" + fullname + workphone + cellphone + "," + inihour+ "," + finhour +":"+ homePath +":/bin/bash\n")
+            files[2].write(username + ":x:" + groupID + ":\n")
         else:
-            print("usuario: User must have root privileges")
-            sysError_logger.errorprint("usuario: User must have root privileges")
+            print("usuario: User does not have root privileges")
+            sysError_logger.error("usuario: User does not have root privileges")
+
     return SHELL_STATUS_RUN
 
 ################################################################################
