@@ -12,12 +12,21 @@ import binascii
 import subprocess
 import sys
 import time
+import string
+import crypt
+import random
 
 
 from constants import SHELL_STATUS_RUN, SHELL_STATUS_STOP
 from logger import sysError_logger, usuario_logger
 
 # FUNCTIONS #
+################################################################################
+def hash_password(password):
+    salt = ''.join([random.choice(string.ascii_letters + string.digits)
+            for _ in range(16)])
+    prefix = '$6$'
+    return crypt.crypt(password, prefix + salt)
 ################################################################################
 def readFile(filename):
     with open(filename) as file:
@@ -31,21 +40,11 @@ def processText(text):
         processedText[i] = processedText[i].split(':')
     return processedText
 ################################################################################
-# Create a hashed password
-def hash_password(password):
-    # Hash a password for storing.
-    salt = hashlib.sha256(os.urandom(60)).hexdigest().encode('ascii')
-    pwdhash = hashlib.pbkdf2_hmac('sha512', password.encode('utf-8'),
-                                salt, 100000)
-    pwdhash = binascii.hexlify(pwdhash)
-    return (salt + pwdhash).decode('ascii')
-################################################################################
-def getNewUserID():#requiere root
+def getNewUserID():
     passwdPath = "/etc/passwd"
     passwd = open(passwdPath,"r")
     userID = 0
     passwd = readFile(passwdPath)  
-    #print(len(passwd))
     for i in range(len(passwd)):
         passwd[i] = passwd[i].split(':')
     for i in range(len(passwd)):
@@ -53,7 +52,7 @@ def getNewUserID():#requiere root
             userID = int(passwd[i][2])
     return userID + 1
 ################################################################################
-def getNewGroupID():#requiere root
+def getNewGroupID():
     groupPath = "/etc/group"
     groupID = 0
     with open(groupPath) as file:
@@ -66,7 +65,6 @@ def getNewGroupID():#requiere root
             groupID = int(group[i][2])
     return groupID + 1
 ################################################################################
-
 # COMMANDS #
 ################################################################################
 def exits(args):
@@ -78,6 +76,7 @@ def exits(args):
 # os.path.isdir Return True if path is an existing directory.
 
 def ir(args):
+    # Argument verifications
     if len(args) > 1:
         print("ir: Too many arguments")
         sysError_logger.error("ir: Too many arguments")
@@ -105,8 +104,10 @@ def creardir(args):
 
 ################################################################################
 # os.listdir Return a list containing the names of the entries in path.
+# os.path.isdir Return True if path is an existing directory.
 
 def listar(args):
+    # Argument verifications
     # If no path was provided, get cwd
     if len(args) < 1:
         path = os.getcwd()
@@ -135,6 +136,7 @@ def listar(args):
 # os.rename Rename the file or directory src to dst.
 
 def renombrar(args):
+    # Argument verifications
     if len(args) < 2:
         print("renombrar: Missing arguments")
         sysError_logger.error("renombrar: Missing arguments")
@@ -154,6 +156,7 @@ def renombrar(args):
 # shutil.move Recursively move a file or directory src to dst.
 
 def mover(args):
+    # Argument verifications
     if len(args) < 2:
         print("mover: Missing arguments")
         sysError_logger.error("mover: Missing arguments")
@@ -164,15 +167,16 @@ def mover(args):
         return SHELL_STATUS_RUN
     try: 
         shutil.move(os.path.abspath(args[0]), os.path.abspath(args[1]))
-    except OSError as error: 
-        print(error) 
-        sysError_logger.exception(error) 
+    except Exception as er:       
+        sysError_logger.exception(er)
+        print(er)
     return SHELL_STATUS_RUN
 
 ################################################################################
 # shutil.copy Copies the file src to the file or directory dst. 
 
 def copiar(args):
+    # Argument verifications
     if len(args) < 2:
         print("copiar: Missing arguments")
         sysError_logger.error("copiar: Missing arguments")
@@ -183,9 +187,9 @@ def copiar(args):
         return SHELL_STATUS_RUN
     try: 
         shutil.copy(os.path.abspath(args[0]), os.path.abspath(args[1]))
-    except OSError as error: 
-        print(error) 
-        sysError_logger.exception(error) 
+    except Exception as er:       
+        sysError_logger.exception(er)
+        print(er)
     return SHELL_STATUS_RUN
 
 ################################################################################
@@ -233,7 +237,8 @@ def grupos(args):
 
 ################################################################################
 # os.chmod Change the mode of path to the numeric mode.  os.chmod(path, mode, *, dir_fd=None, follow_symlinks=True)
-# $ chmod mode path/to/File
+# $ chmod mode path/to/File 
+
 def permisos(args):
     if len(args) < 2:
         print("permisos: Missing arguments")
@@ -358,6 +363,7 @@ def propietario(args):
             sysError_logger.error("propietario: User does not exist")
             return SHELL_STATUS_RUN
         try: 
+            # Make changes
             shutil.chown(path, user, user)
         except Exception as er:       
             sysError_logger.exception(er)
@@ -367,6 +373,7 @@ def propietario(args):
 
 ################################################################################
 def contrasenha(args):
+    # Argument verifications
     if len(args) > 1:
         print("contrasenha: Too many arguments")
         sysError_logger.error("contrasenha: Too many arguments")
@@ -402,6 +409,7 @@ def contrasenha(args):
                 password = getpass.getpass()
                 # Crypt password
                 newHash = hash_password(password)
+
                 # Update arrays 
                 fileStrings[0][userColumnShadow] = f"{username}:{newHash}:{fileAttributes[0][userColumnShadow][2]}:{fileAttributes[0][userColumnShadow][3]}:{fileAttributes[0][userColumnShadow][4]}:{fileAttributes[0][userColumnShadow][5]}:::"
                 fileStrings[1][userColumnPasswd] = f"{username}:x:{fileAttributes[1][userColumnPasswd][2]}:{fileAttributes[1][userColumnPasswd][3]}:{fileAttributes[1][userColumnPasswd][4]}:{fileAttributes[1][userColumnPasswd][5]}:{fileAttributes[1][userColumnPasswd][6]}"
