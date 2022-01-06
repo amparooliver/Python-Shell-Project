@@ -222,35 +222,24 @@ def grupos(args):
     return SHELL_STATUS_RUN
 
 ################################################################################
-
+# os.chmod Change the mode of path to the numeric mode.  os.chmod(path, mode, *, dir_fd=None, follow_symlinks=True)
+# $ chmod mode path/to/File
 def permisos(args):
     if len(args) < 2:
-            print("permisos: Missing arguments")
-            sysError_logger.error("permisos: Missing arguments")
-            return SHELL_STATUS_RUN
+        print("permisos: Missing arguments")
+        sysError_logger.error("permisos: Missing arguments")
+        return SHELL_STATUS_RUN
     elif len(args) > 2:
-            print("permisos: Too many arguments")
-            sysError_logger.error("permisos: Too many arguments")
-            return SHELL_STATUS_RUN
-    elif len(args) == 2:
-        path = os.path.abspath(args[1])
-        mode = (args[0])
-        if mode == "+r":
-            print("prueba")
-        elif mode == "-r":
-            print("prueba")
-        elif mode == "+w":
-            print("prueba")
-        elif mode == "-w":
-            print("prueba")
-        elif mode == "+x":
-            print("prueba")
-        elif mode == "-x":
-            print("prueba")
-        elif mode == "+rwx":
-            print("prueba")
-        elif mode == "-rwx":
-            print("prueba")
+        print("permisos: Too many arguments")
+        sysError_logger.error("permisos: Too many arguments")
+        return SHELL_STATUS_RUN
+    else:
+        mode = int(args[0])
+        try: 
+            os.chmod(os.path.abspath(args[1]),mode) 
+        except OSError as error: 
+            print(error)  
+            sysError_logger.exception(error)
     return SHELL_STATUS_RUN
 
 ################################################################################
