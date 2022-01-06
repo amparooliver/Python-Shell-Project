@@ -359,16 +359,11 @@ def propietario(args):
             print("propietario: User does not exist")
             sysError_logger.error("propietario: User does not exist")
             return SHELL_STATUS_RUN
-        if len(args) == 2:
-            # Get gid for user
-            group = pwd.getpwnam(user).pw_gid
-        else:
-            group = int(args[2])
         try: 
-            shutil.chown(path, user, group)
-        except OSError as error: 
-            print(error)
-            sysError_logger.exception(error)  
+            shutil.chown(path, user, user)
+        except Exception as er:       
+            sysError_logger.exception(er)
+            print(er)
 
     return SHELL_STATUS_RUN   
 
