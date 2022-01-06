@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import difflib
 import getpass
 import os
@@ -232,16 +233,16 @@ def difer(args):
         print("difer: Missing arguments")
         sysError_logger.error("difer: Missing arguments")
     elif len(args) > 2:
-        print("difer: To many arguments")
-        sysError_logger.error("difer: To many arguments")
+        print("difer: Too many arguments")
+        sysError_logger.error("difer: Too many arguments")
     return SHELL_STATUS_RUN
 
 ################################################################################
 
 def usuario(args):
     if len(args) > 0:
-        print("usuario: To many arguments")
-        sysError_logger.error("usuario: To many arguments")
+        print("usuario: Too many arguments")
+        sysError_logger.error("usuario: Too many arguments")
     else:        
         # Check if current user is root
         if os.geteuid() == 0:
@@ -259,6 +260,57 @@ def usuario(args):
             print("usuario: User must have root privileges")
             sysError_logger.errorprint("usuario: User must have root privileges")
     return SHELL_STATUS_RUN
+
+################################################################################
+# shutil.chown used to change the owner and /or group of the specified path. 
+
+def propietario(args):
+    if len(args) > 3:
+        print("propietario: Too many arguments")
+        sysError_logger.error("propietario: Too many arguments")
+    elif len(args) < 2:
+        print("propietario: Missing arguments")
+        sysError_logger.error("propietario: Missing arguments")
+    else:
+        path = os.path.abspath(args[0])
+        # Check if User exists
+        user = args[1]
+        try:
+            pwd.getpwnam(user)
+        except KeyError:
+            print("propietario: User does not exist")
+            sysError_logger.error("propietario: User does not exist")
+            return SHELL_STATUS_RUN
+        if len(args) == 2:
+            # Get gid for user
+            group = pwd.getpwnam(user).pw_gid
+        else:
+            group = int(args[2])
+        try: 
+            shutil.chown(path, user, group)
+        except OSError as error: 
+            print(error)
+            sysError_logger.exception(error)  
+
+    return SHELL_STATUS_RUN   
+
+################################################################################
+def contrasenha(args):
+    login = getpass.getuser()
+    password = getpass.getpass()
+
+    # OpenSSL doesn't support stronger hash functions, mkpasswd is preferred
+    #p = subprocess.Popen(('openssl', 'passwd', '-1', password), stdout=subprocess.PIPE)
+    p = subprocess.Popen(('mkpasswd', '-m', 'sha-512', password), stdout=subprocess.PIPE)
+    shadow_password = p.communicate()[0].strip()
+
+    if p.returncode != 0:
+        print ("Error creating hash for " + login)
+
+    r = subprocess.call(('usermod', '-p', shadow_password, login))
+
+    if r != 0:
+        print ("Error changing password for " + login)
 
 ################################################################################
 
@@ -316,6 +368,7 @@ def display_cmd_prompt():
     # Get base directory (last part of the curent working directory path)
     cwd = os.getcwd()
     base_dir = os.path.basename(cwd)
+    # If preferable, change base_dir = cwd to get the absolute path
 
     # Use ~ instead if a user is at his/her home directory
     home_dir = os.path.expanduser('~')
@@ -323,7 +376,7 @@ def display_cmd_prompt():
         base_dir = '~'
 
     # Print out to console
-    sys.stdout.write("[%s@%s %s]$ " % (user, hostname, base_dir))
+    sys.stdout.write("[%s@%s: %s]$ " % (user, hostname, base_dir))
     sys.stdout.flush()
 
 def shell_loop():
@@ -345,7 +398,7 @@ def shell_loop():
         except:
             _, err, _ = sys.exc_info()
             print(err)
-            #logging.exception(err)
+            sysError_logger.exception(err)
 
 
 # Register a built-in function to built-in command hash map
@@ -365,6 +418,8 @@ def init():
     register_command("difer", difer)
     register_command("permisos", permisos)
     register_command("usuario", usuario)
+    register_command("propietario", propietario)
+    register_command("contrasenha", contrasenha)
 
 def main():
     # Init shell before starting the main loop
