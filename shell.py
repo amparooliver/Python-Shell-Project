@@ -7,11 +7,12 @@ import shlex
 import shutil
 import signal
 import socket
-import stat
+import hashlib
+import binascii
 import subprocess
 import sys
 import time
-import datetime
+
 
 from constants import SHELL_STATUS_RUN, SHELL_STATUS_STOP
 from logger import sysError_logger, usuario_logger
@@ -29,6 +30,15 @@ def processText(text):
     for i in range(len(processedText)):
         processedText[i] = processedText[i].split(':')
     return processedText
+################################################################################
+# Create a hashed password
+def hash_password(password):
+    # Hash a password for storing.
+    salt = hashlib.sha256(os.urandom(60)).hexdigest().encode('ascii')
+    pwdhash = hashlib.pbkdf2_hmac('sha512', password.encode('utf-8'),
+                                salt, 100000)
+    pwdhash = binascii.hexlify(pwdhash)
+    return (salt + pwdhash).decode('ascii')
 ################################################################################
 def getNewUserID():#requiere root
     passwdPath = "/etc/passwd"
@@ -291,7 +301,6 @@ def usuario(args):
                 files[i] = processText(files[i])
             # Check if user already exists
             for i in range(len(files[2])):
-                #print(files[2][i])
                 if files[2][i][0] == username:
                     sysError_logger.error(username + " already exists")
                     return SHELL_STATUS_RUN
@@ -358,22 +367,64 @@ def propietario(args):
 
 ################################################################################
 def contrasenha(args):
-    login = getpass.getuser()
-    password = getpass.getpass()
+    if len(args) > 1:
+        print("contrasenha: Too many arguments")
+        sysError_logger.error("contrasenha: Too many arguments")
+    elif len(args) < 1:
+        print("contrasenha: Missing arguments")
+        sysError_logger.error("contrasenha: Missing arguments")
+    else:        
+        # Check if current user is root
+        if os.geteuid() == 0:
 
-    # OpenSSL doesn't support stronger hash functions, mkpasswd is preferred
-    #p = subprocess.Popen(('openssl', 'passwd', '-1', password), stdout=subprocess.PIPE)
-    p = subprocess.Popen(('mkpasswd', '-m', 'sha-512', password), stdout=subprocess.PIPE)
-    shadow_password = p.communicate()[0].strip()
+            # Set variables
+            username = args[0]
+            paths = ["/etc/shadow","/etc/passwd"]
+            userColumnShadow = 0
+            userColumnPasswd = 0
+            fileStrings = [0,0]
+            fileAttributes = [0,0]     
 
-    if p.returncode != 0:
-        print ("Error creating hash for " + login)
+            # Read files
+            for i in range(2):
+                fileStrings[i] = readFile(paths[i])
+                fileAttributes[i] = processText(fileStrings[i])
+            # Check if user exists in files
+            for i in range(len(fileAttributes[0])):
+                if fileAttributes[0][i][0] == username:
+                    userColumnShadow = i
+            for i in range(len(fileAttributes[1])):
+                if fileAttributes[1][i][0] == username:
+                    userColumnPasswd = i    
+            # If user is found in files      
+            if userColumnShadow != 0 or userColumnPasswd != 0:
+                # Ask for password
+                password = getpass.getpass()
+                # Crypt password
+                newHash = hash_password(password)
+                # Update arrays 
+                fileStrings[0][userColumnShadow] = f"{username}:{newHash}:{fileAttributes[0][userColumnShadow][2]}:{fileAttributes[0][userColumnShadow][3]}:{fileAttributes[0][userColumnShadow][4]}:{fileAttributes[0][userColumnShadow][5]}:::"
+                fileStrings[1][userColumnPasswd] = f"{username}:x:{fileAttributes[1][userColumnPasswd][2]}:{fileAttributes[1][userColumnPasswd][3]}:{fileAttributes[1][userColumnPasswd][4]}:{fileAttributes[1][userColumnPasswd][5]}:{fileAttributes[1][userColumnPasswd][6]}"
 
-    r = subprocess.call(('usermod', '-p', shadow_password, login))
+                passwdFalso = open("/etc/passwd","w+")
+                #Actualizamos los archivos passwd y shadow
+                for i in range(len(fileStrings[1])):
+                    passwdFalso.write(fileStrings[1][i])
+                    passwdFalso.write("\n")
 
-    if r != 0:
-        print ("Error changing password for " + login)
+                shadowFalso = open("/etc/shadow","w+")
+                for i in range(len(fileStrings[0])):    
+                    shadowFalso.write(fileStrings[0][i])
+                    shadowFalso.write("\n")
+                
+            else:
+                print("contrasenha: User does not exist")
+                sysError_logger.error("contrasenha: User does not exist")         
+        else:
+            print("usuario: User does not have root privileges")
+            sysError_logger.error("usuario: User does not have root privileges")
 
+    return SHELL_STATUS_RUN
 ################################################################################
 
 # Hash map to store built-in function name and reference as key and value
