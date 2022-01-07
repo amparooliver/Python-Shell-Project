@@ -434,6 +434,78 @@ def contrasenha(args):
 
     return SHELL_STATUS_RUN
 ################################################################################
+def ayuda(args):
+    cm1 = """
+    copiar: copiar /path/to/File /path/to/Destination
+    Copies file from origin to path.
+    """
+    cm2 = """
+    mover: mover /path/to/Origin /path/to/Destination
+    Moves file/directory to another directory.
+    """
+    cm3 = """
+    renombrar: renombrar /path/to/Original /path/to/Renamed
+    Renames file/directory.
+    """
+    cm4 = """
+    listar: listar /path/to/Destination
+    Lists all the entries within the provided directory. If argument is empty, lists cwd.
+    """
+    cm5 = """
+    creardir: creardir /path/to/Directory
+    Creates a directory.
+    """
+    cm6 = """
+    ir: ir /path/to/Directory
+    Changes from cwd to provided directory.
+    """
+    cm7 = """
+    permisos: permisos mode /path/to/Destination
+    Manages file system access permissions to files/directories.
+    """
+    cm8 = """
+    propietario: propietario username /path/to/Destination
+    Changes ownership of files/directories.
+    """
+    cm9 = """
+    contrasenha: contrasenha username
+    Sets or changes password for given username. Must have root privileges.
+    """        
+    cm10 = """
+    usuario: usuario username
+    Creates a new user for given username. Must have root privileges.
+    """
+    cm11 = """
+    grupos: grupos username
+    Lists the IDs of the primary and any supplementary groups for given username.
+    """
+    cm12 = """
+    difer: difer /path/to/file1 /path/to/file2
+    Compares two given files line by line and prints differences.
+    """
+    # Argument verifications
+    if len(args) > 1:
+        print("help: Too many arguments")
+        sysError_logger.error("help: Too many arguments")
+    elif len(args) == 0:
+        print("AYUDA")
+        print(f"{cm1}\n{cm2}\n{cm3}\n{cm4}\n{cm5}\n{cm6}\n{cm7}\n{cm8}\n{cm9}\n{cm10}\n{cm11}\n{cm12}\n")
+    else:  
+        print("AYUDA")
+        if args[0] == "copiar": print(cm1)
+        if args[0] == "mover": print(cm2)  
+        if args[0] == "renombrar": print(cm3)  
+        if args[0] == "listar": print(cm4)  
+        if args[0] == "creardir": print(cm5)  
+        if args[0] == "ir": print(cm6)  
+        if args[0] == "permisos": print(cm7)  
+        if args[0] == "propietario": print(cm8)  
+        if args[0] == "contrasenha": print(cm9)  
+        if args[0] == "usuario": print(cm10)  
+        if args[0] == "grupos": print(cm11)  
+        if args[0] == "difer": print(cm12)        
+    return SHELL_STATUS_RUN
+################################################################################
 
 # Hash map to store built-in function name and reference as key and value
 built_in_cmds = {}
@@ -541,7 +613,7 @@ def init():
     register_command("usuario", usuario)
     register_command("propietario", propietario)
     register_command("contrasenha", contrasenha)
-
+    register_command("ayuda", ayuda)
 def main():
     # Init shell before starting the main loop
     init()
