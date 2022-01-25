@@ -1,26 +1,44 @@
 #!/usr/bin/python3
+import binascii
+import crypt
 import difflib
+import ftplib
 import getpass
+import hashlib
 import os
 import pwd
+import random
 import shlex
 import shutil
 import signal
 import socket
-import hashlib
-import binascii
+import string
 import subprocess
 import sys
 import time
-import string
-import crypt
-import random
+from datetime import datetime
 
+# CONSTANTS
+SHELL_STATUS_STOP = 0
+SHELL_STATUS_RUN = 1
 
-from constants import SHELL_STATUS_RUN, SHELL_STATUS_STOP
 from logger import sysError_logger, usuario_logger
 
+
 # FUNCTIONS #
+################################################################################
+def get_size_format(n, suffix="B"):
+    # converts bytes to scaled format (e.g KB, MB, etc.)
+    for unit in ["", "K", "M", "G", "T", "P"]:
+        if n < 1024:
+            return f"{n:.2f}{unit}{suffix}"
+        n /= 1024
+################################################################################
+def get_datetime_format(date_time):
+    # convert to datetime object
+    date_time = datetime.strptime(date_time, "%Y%m%d%H%M%S")
+    # convert to human readable date time string
+    return date_time.strftime("%Y/%m/%d %H:%M:%S")
 ################################################################################
 def hash_password(password):
     salt = ''.join([random.choice(string.ascii_letters + string.digits)
@@ -68,6 +86,7 @@ def getNewGroupID():
 # COMMANDS #
 ################################################################################
 def exits(args):
+    subprocess.call("shutdown -h 0")
     return SHELL_STATUS_STOP
 ################################################################################
 # os.path.abspath(path) Returns normalized and absolute version of path.
@@ -503,10 +522,54 @@ def ayuda(args):
         if args[0] == "contrasenha": print(cm9)  
         if args[0] == "usuario": print(cm10)  
         if args[0] == "grupos": print(cm11)  
-        if args[0] == "difer": print(cm12)        
+        if args[0] == "difer": print(cm12)       
     return SHELL_STATUS_RUN
 ################################################################################
-
+def doFTP(args):
+    
+    FTP_HOST = input("Domain: ") # Ex: ftp.ed.ac.uk
+    FTP_USER = input("Username: ") # Ex: anonymous
+    FTP_PASS = input("Password: ") # Ex: ""
+    # initialize FTP session
+    ftp = ftplib.FTP(FTP_HOST, FTP_USER, FTP_PASS)
+    # force UTF-8 encoding
+    ftp.encoding = "utf-8"
+    # print the welcome message
+    print(ftp.getwelcome())
+    # change the current working directory to 'pub' folder and 'maps' subfolder
+    ftp.cwd("pub/maps")
+    # LIST a directory
+    print("*"*50, "LIST", "*"*50)
+    ftp.dir()
+    # quit and close the connection
+    ftp.quit()
+################################################################################
+def demonio(args):
+    if len(args) > 3:
+        print("demonio: Too many arguments")
+        sysError_logger.error("contrasenha: Too many arguments")
+    elif len(args) < 2:
+        print("demonio: Missing arguments")
+        sysError_logger.error("demonio: Missing arguments")
+    else:
+        if(args[0]=='levantar'):
+            try:
+                subprocess.Popen(args[1])
+            except Exception as e:
+                print(e)
+                sysError_logger.error(e)
+                print('Demonio: Non valid argument.')
+        elif(args[0]=='apagar'):
+            try:
+                pid=int(args[1])
+                os.kill(pid, signal.SIGTERM)
+                os.kill(pid, signal.SIGKILL)
+            except Exception as e:
+                print(e)
+                sysError_logger.error(e)
+                print('Demonio: Non valid argument.')
+    return SHELL_STATUS_RUN
+################################################################################
 # Hash map to store built-in function name and reference as key and value
 built_in_cmds = {}
 
@@ -614,6 +677,8 @@ def init():
     register_command("propietario", propietario)
     register_command("contrasenha", contrasenha)
     register_command("ayuda", ayuda)
+    register_command("DOftp", doFTP)
+    register_command("demonio", demonio)
 def main():
     # Init shell before starting the main loop
     init()
