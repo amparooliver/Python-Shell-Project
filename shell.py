@@ -570,6 +570,26 @@ def demonio(args):
                 print('Demonio: Non valid argument.')
     return SHELL_STATUS_RUN
 ################################################################################
+#
+def doShell(args):
+
+    if len(args) < 1:
+        print("doShell: Missing arguments")
+        sysError_logger.error("doShell: Missing arguments")
+    else:
+
+        # Turn List to String
+        # initialize an empty string
+        str1 = ""
+        # traverse in the string  
+        for ele in args: 
+            str1 += ele  
+        
+        output = os.popen(str1).read()
+        print (output)
+
+    return SHELL_STATUS_RUN
+################################################################################
 # Hash map to store built-in function name and reference as key and value
 built_in_cmds = {}
 
@@ -679,6 +699,8 @@ def init():
     register_command("ayuda", ayuda)
     register_command("DOftp", doFTP)
     register_command("demonio", demonio)
+    register_command("doShell", doShell)
+
 def main():
     # Init shell before starting the main loop
     init()
