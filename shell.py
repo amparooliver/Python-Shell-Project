@@ -22,7 +22,7 @@ import datetime
 SHELL_STATUS_STOP = 0
 SHELL_STATUS_RUN = 1
 
-from logger import sysError_logger, usuario_logger
+from logger import sysError_logger, usuario_logger, usuTransfer_logger
 
 
 # FUNCTIONS #
@@ -40,6 +40,13 @@ def userLogout():
     currentDate = datetime.datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
     str1 =' LOGOUT REGISTER: username: ' + user + ' IP:' + ip + ' date:' + currentDate + '\n'  
     usuario_logger.info(str1)
+################################################################################
+def userTransfer(args):
+    user = getpass.getuser()
+    currentDate = datetime.datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
+    str1 =' USER TRANSFER REGISTER (ftp/scp): username: ' + user + ' date:' + currentDate + ' command:' + args + '\n'  
+    usuTransfer_logger(str1)
+################################################################################
 ################################################################################
 def get_size_format(n, suffix="B"):
     # converts bytes to scaled format (e.g KB, MB, etc.)
@@ -544,11 +551,14 @@ def ayuda(args):
 def doFTP(args):
     try:
         os.system(args)
+        userTransfer(args)
     except Exception as e:
         print(e)
         sysError_logger.error(e)
+    return SHELL_STATUS_RUN
 ################################################################################
 def demonio(args):
+    # Argument verifications
     if len(args) > 3:
         print("demonio: Too many arguments")
         sysError_logger.error("contrasenha: Too many arguments")
@@ -576,6 +586,7 @@ def demonio(args):
 ################################################################################
 # Para ejecutar comandos del sistema 
 def doShell(args):
+    # Argument verifications
     if len(args) < 1:
         print("doShell: Missing arguments")
         sysError_logger.error("doShell: Missing arguments")
