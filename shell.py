@@ -16,7 +16,7 @@ import string
 import subprocess
 import sys
 import time
-from datetime import datetime
+import datetime
 
 # CONSTANTS
 SHELL_STATUS_STOP = 0
@@ -26,6 +26,20 @@ from logger import sysError_logger, usuario_logger
 
 
 # FUNCTIONS #
+################################################################################
+def userLogin():
+    user = getpass.getuser()
+    ip = str(socket.gethostbyname(socket.gethostname()))
+    currentDate = datetime.datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
+    str1 =' LOGIN REGISTER: username: ' + user + ' IP:' + ip + ' date:' + currentDate + '\n'  
+    usuario_logger.info(str1)
+################################################################################
+def userLogout():
+    user = getpass.getuser()
+    ip = str(socket.gethostbyname(socket.gethostname()))
+    currentDate = datetime.datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
+    str1 =' LOGOUT REGISTER: username: ' + user + ' IP:' + ip + ' date:' + currentDate + '\n'  
+    usuario_logger.info(str1)
 ################################################################################
 def get_size_format(n, suffix="B"):
     # converts bytes to scaled format (e.g KB, MB, etc.)
@@ -86,7 +100,9 @@ def getNewGroupID():
 # COMMANDS #
 ################################################################################
 def exits(args):
-    subprocess.call("shutdown -h 0")
+    userLogout()
+    output = os.popen('exit').read()
+    print (output)
     return SHELL_STATUS_STOP
 ################################################################################
 # os.path.abspath(path) Returns normalized and absolute version of path.
@@ -526,23 +542,11 @@ def ayuda(args):
     return SHELL_STATUS_RUN
 ################################################################################
 def doFTP(args):
-    
-    FTP_HOST = input("Domain: ") # Ex: ftp.ed.ac.uk
-    FTP_USER = input("Username: ") # Ex: anonymous
-    FTP_PASS = input("Password: ") # Ex: ""
-    # initialize FTP session
-    ftp = ftplib.FTP(FTP_HOST, FTP_USER, FTP_PASS)
-    # force UTF-8 encoding
-    ftp.encoding = "utf-8"
-    # print the welcome message
-    print(ftp.getwelcome())
-    # change the current working directory to 'pub' folder and 'maps' subfolder
-    ftp.cwd("pub/maps")
-    # LIST a directory
-    print("*"*50, "LIST", "*"*50)
-    ftp.dir()
-    # quit and close the connection
-    ftp.quit()
+    try:
+        os.system(args)
+    except Exception as e:
+        print(e)
+        sysError_logger.error(e)
 ################################################################################
 def demonio(args):
     if len(args) > 3:
@@ -570,21 +574,15 @@ def demonio(args):
                 print('Demonio: Non valid argument.')
     return SHELL_STATUS_RUN
 ################################################################################
-#
+# Para ejecutar comandos del sistema 
 def doShell(args):
-
     if len(args) < 1:
         print("doShell: Missing arguments")
         sysError_logger.error("doShell: Missing arguments")
     else:
-
         # Turn List to String
-        # initialize an empty string
-        str1 = ""
-        # traverse in the string  
-        for ele in args: 
-            str1 += ele  
-        
+        # using list comprehension
+        str1 = ' '.join(map(str, args))
         output = os.popen(str1).read()
         print (output)
 
@@ -707,4 +705,5 @@ def main():
     shell_loop()
 
 if __name__ == "__main__":
+    userLogin()
     main()
