@@ -22,101 +22,98 @@ import datetime
 SHELL_STATUS_STOP = 0
 SHELL_STATUS_RUN = 1
 
-from logger import sysError_logger, usuario_logger, usuTransfer_logger
+# Loggers
+from logger import sysError_logger, usuario_logger, usuTransfer_logger, usuComandos_logger
 
 
 # FUNCTIONS #
-################################################################################
+# Function to register user login
 def userLogin():
     user = getpass.getuser()
     ip = str(socket.gethostbyname(socket.gethostname()))
     currentDate = datetime.datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
     str1 =' LOGIN REGISTER: username: ' + user + ' IP:' + ip + ' date:' + currentDate + '\n'  
     usuario_logger.info(str1)
-################################################################################
+
+# Function to register user logout
 def userLogout():
     user = getpass.getuser()
     ip = str(socket.gethostbyname(socket.gethostname()))
     currentDate = datetime.datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
     str1 =' LOGOUT REGISTER: username: ' + user + ' IP:' + ip + ' date:' + currentDate + '\n'  
     usuario_logger.info(str1)
-################################################################################
+
+# Function to register user transfers (ftp / scp)
 def userTransfer(args):
     user = getpass.getuser()
     currentDate = datetime.datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
-    str1 =' USER TRANSFER REGISTER (ftp/scp): username: ' + user + ' date:' + currentDate + ' command:' + args + '\n'  
-    usuTransfer_logger(str1)
-################################################################################
-################################################################################
-def get_size_format(n, suffix="B"):
-    # converts bytes to scaled format (e.g KB, MB, etc.)
-    for unit in ["", "K", "M", "G", "T", "P"]:
-        if n < 1024:
-            return f"{n:.2f}{unit}{suffix}"
-        n /= 1024
-################################################################################
-def get_datetime_format(date_time):
-    # convert to datetime object
-    date_time = datetime.strptime(date_time, "%Y%m%d%H%M%S")
-    # convert to human readable date time string
-    return date_time.strftime("%Y/%m/%d %H:%M:%S")
-################################################################################
+    str1 = ' '.join(map(str, args)) 
+    str2 =' USER TRANSFER REGISTER (ftp/scp): username: ' + user + ' date:' + currentDate + ' command:' + str1 + '\n'  
+    usuTransfer_logger.info(str2)
+
+# Function to register user commands
+def userCommands(args):
+    user = getpass.getuser()
+    currentDate = datetime.datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
+    str2 = currentDate + ' command: ' + args + ' username: ' + user + '\n'  
+    usuComandos_logger.info(str2)
+
+# Function that returns hashed password (for useradd command)
 def hash_password(password):
     salt = ''.join([random.choice(string.ascii_letters + string.digits)
             for _ in range(16)])
     prefix = '$6$'
     return crypt.crypt(password, prefix + salt)
-################################################################################
+
+# Function that reads File line by line into a list
 def readFile(filename):
     with open(filename) as file:
         lines = file.readlines() 
-        lines = [line.rstrip() for line in lines]
+        lines = [line.rstrip() for line in lines] # removes all whitespace characters
     return lines
-################################################################################
-def processText(text):
-    processedText = list(text)
-    for i in range(len(processedText)):
-        processedText[i] = processedText[i].split(':')
-    return processedText
-################################################################################
-def getNewUserID():
-    passwdPath = "/etc/passwd"
-    passwd = open(passwdPath,"r")
-    userID = 0
-    passwd = readFile(passwdPath)  
+
+# Function that splits file string into a list by : parameter.
+def splitText(file):
+    listFile = list(file)
+    for i in range(len(listFile)):
+        listFile[i] = listFile[i].split(':')
+    return listFile
+
+# Function that generates a new User Id 
+def generateuserId():
+    passwd = open("/etc/passwd","r")
+    userId = 0
+    passwd = readFile("/etc/passwd")  
     for i in range(len(passwd)):
         passwd[i] = passwd[i].split(':')
     for i in range(len(passwd)):
-        if userID < int(passwd[i][2]):
-            userID = int(passwd[i][2])
-    return userID + 1
-################################################################################
-def getNewGroupID():
-    groupPath = "/etc/group"
-    groupID = 0
-    with open(groupPath) as file:
+        if userId < int(passwd[i][2]):
+            userId = int(passwd[i][2])
+    return userId + 1
+
+# Function that generates new Group Id
+def generategroupId():
+    groupId = 0
+    with open("/etc/group") as file:
         group = file.readlines()
         group = [group.rstrip() for group in group]
     for i in range(len(group)):
         group[i] = group[i].split(':')
     for i in range(len(group)):
-        if groupID < int(group[i][2]):
-            groupID = int(group[i][2])
-    return groupID + 1
-################################################################################
+        if groupId < int(group[i][2]):
+            groupId = int(group[i][2])
+    return groupId + 1
+
 # COMMANDS #
-################################################################################
+# exit command: Stops the Shell from running
 def exits(args):
     userLogout()
+    userCommands('exit')
     output = os.popen('exit').read()
     print (output)
     return SHELL_STATUS_STOP
-################################################################################
-# os.path.abspath(path) Returns normalized and absolute version of path.
-# os.chdir Change the current working directory to path.
-# os.getenv Return the value of the environment variable key if it exists.
-# os.path.isdir Return True if path is an existing directory.
 
+# 6. ir command: Changes the current working directory to path.
 def ir(args):
     # Argument verifications
     if len(args) > 1:
@@ -125,34 +122,31 @@ def ir(args):
         return SHELL_STATUS_RUN
     elif len(args) == 0:
         os.chdir(os.getenv('HOME'))
+        userCommands('ir')
     elif len(args) == 1:
         try:
-            os.chdir(os.path.abspath(args[0]))
+            os.chdir(os.path.abspath(args[0])) # args[0] --> path
+            userCommands(" ".join(['ir', args[0]]))
         except OSError as error: 
             print(error)
             sysError_logger.exception(error)
     return SHELL_STATUS_RUN
 
-################################################################################
-# os.mkdir Create a directory named path.
-
+# 5. creardir command: Creates a directory named path.
 def creardir(args):
     try: 
-        os.mkdir(args[0]) 
+        os.mkdir(args[0]) # args[0] --> path
+        userCommands(" ".join(['creardir', args[0]]))
     except OSError as error: 
         print(error)  
         sysError_logger.exception(error)
     return SHELL_STATUS_RUN
 
-################################################################################
-# os.listdir Return a list containing the names of the entries in path.
-# os.path.isdir Return True if path is an existing directory.
-
+# 4. listar command: Prints a list containing the names of the entries in path.
 def listar(args):
     # Argument verifications
-    # If no path was provided, get cwd
     if len(args) < 1:
-        path = os.getcwd()
+        path = os.getcwd() # If no path was provided, get cwd
     elif len(args) > 1:
         print("listar: Too many arguments")
         sysError_logger.error("listar: Too many arguments")
@@ -161,22 +155,21 @@ def listar(args):
         # Check if path exists
         if os.path.isdir(os.path.abspath(args[0])):
             if len(args) == 1:
-                path = os.path.abspath(args[0])
+                path = os.path.abspath(args[0]) # args[0] --> path
         else:
             print("listar: Path does not exist")
             sysError_logger.error("listar: Path does not exist")
             return SHELL_STATUS_RUN
     try: 
         dir_list = os.listdir(path) 
+        userCommands(" ".join(['listar', args[0]]))
         print(dir_list)
     except OSError as error: 
         print(error)
         sysError_logger.exception(error)  
     return SHELL_STATUS_RUN
 
-################################################################################
-# os.rename Rename the file or directory src to dst.
-
+# 3. renombrar command: Rename the file or directory src to dst.
 def renombrar(args):
     # Argument verifications
     if len(args) < 2:
@@ -188,15 +181,14 @@ def renombrar(args):
         sysError_logger.error("renombrar: Too many arguments")
         return SHELL_STATUS_RUN
     try: 
-        os.rename(os.path.abspath(args[0]), os.path.abspath(args[1]))
+        os.rename(os.path.abspath(args[0]), os.path.abspath(args[1])) # args[0] --> src ; args[1] --> dst
+        userCommands('renombrar '+args[0]+' '+args[1])
     except OSError as error: 
         print(error)
         sysError_logger.exception(error)  
     return SHELL_STATUS_RUN
 
-################################################################################
-# shutil.move Recursively move a file or directory src to dst.
-
+# 2. mover command: moves a file or directory src to dst.
 def mover(args):
     # Argument verifications
     if len(args) < 2:
@@ -208,15 +200,14 @@ def mover(args):
         sysError_logger.error("mover: Too many arguments")
         return SHELL_STATUS_RUN
     try: 
-        shutil.move(os.path.abspath(args[0]), os.path.abspath(args[1]))
+        shutil.move(os.path.abspath(args[0]), os.path.abspath(args[1])) # args[0] --> src ; args[1] --> dst
+        userCommands('mover '+args[0]+' '+args[1])
     except Exception as er:       
         sysError_logger.exception(er)
         print(er)
     return SHELL_STATUS_RUN
 
-################################################################################
-# shutil.copy Copies the file src to the file or directory dst. 
-
+# copiar command: Copies the file src to the file or directory dst. 
 def copiar(args):
     # Argument verifications
     if len(args) < 2:
@@ -228,40 +219,33 @@ def copiar(args):
         sysError_logger.error("copiar: Too many arguments")
         return SHELL_STATUS_RUN
     try: 
-        shutil.copy(os.path.abspath(args[0]), os.path.abspath(args[1]))
+        shutil.copy(os.path.abspath(args[0]), os.path.abspath(args[1])) # args[0] --> src ; args[1] --> dst
+        userCommands('copiar '+args[0]+' '+args[1])
     except Exception as er:       
         sysError_logger.exception(er)
         print(er)
     return SHELL_STATUS_RUN
 
-################################################################################
-# os.getgrouplist Return list of group ids that user belongs to.
-
+# 15. grupos command: Prints list of group ids that user belongs to.
 def grupos(args):
-    # if argument is just user
-    if len(args) == 1:
+    if len(args) == 1: 
         user = args[0]
-        # Check if user exists
         try:
-            pwd.getpwnam(user)
+            pwd.getpwnam(user) 
         except KeyError:
             print("grupos: User does not exist")
             sysError_logger.error("grupos: User does not exist")
             return SHELL_STATUS_RUN
-        # Get gid for user
-        gid = pwd.getpwnam(user).pw_gid
-    # if arguments are user and gid
-    elif len(args) == 2:
+        gid = pwd.getpwnam(user).pw_gid 
+    elif len(args) == 2: 
         user = args[0]
-        # Check if user exists
         try:
-            pwd.getpwnam(user)
+            pwd.getpwnam(user) 
         except KeyError:
             print("grupos: User does not exist")
             sysError_logger.error("grupos: User does not exist")
             return SHELL_STATUS_RUN
         gid = int(args[1])
-    # if there are no arguments, gets current user and gid
     elif len(args) == 0:
         user = getpass.getuser()
         gid = pwd.getpwnam(user).pw_gid
@@ -271,16 +255,14 @@ def grupos(args):
         return SHELL_STATUS_RUN
     try: 
         group_list = os.getgrouplist(user, gid) 
+        userCommands('grupos '+user)
         print(group_list)
     except OSError as error: 
         print(error)  
         sysError_logger.exception(error)
     return SHELL_STATUS_RUN
 
-################################################################################
-# os.chmod Change the mode of path to the numeric mode.  os.chmod(path, mode, *, dir_fd=None, follow_symlinks=True)
-# $ chmod mode path/to/File 
-
+# permisos command: Changes the mode of path to the numeric mode.
 def permisos(args):
     if len(args) < 2:
         print("permisos: Missing arguments")
@@ -294,14 +276,13 @@ def permisos(args):
         mode = int(args[0])
         try: 
             os.chmod(os.path.abspath(args[1]),mode) 
+            userCommands('permisos '+args[0]+' '+args[1])
         except OSError as error: 
             print(error)  
             sysError_logger.exception(error)
     return SHELL_STATUS_RUN
 
-################################################################################
-# os.path.isfile('file') Checks if file exists
-
+# 15. difer command: displays the differences in the files by comparing the files line by line.
 def difer(args):
     if len(args) == 2:
         text1 = os.path.abspath(args[0])
@@ -315,6 +296,7 @@ def difer(args):
             for line in difflib.unified_diff(file_1_text, file_2_text, 
             fromfile= text1, tofile= text2, lineterm=''):
                 print(line)
+            userCommands('difer '+args[0]+' '+args[1])
         else:
             print("difer: File does not exist")
             sysError_logger.error("difer: File does not exist")
@@ -326,8 +308,7 @@ def difer(args):
         sysError_logger.error("difer: Too many arguments")
     return SHELL_STATUS_RUN
 
-################################################################################
-
+# 10. usuario command: adds user to system with personal info
 def usuario(args):
     if len(args) > 1:
         print("usuario: Too many arguments")
@@ -345,7 +326,7 @@ def usuario(args):
             for i in paths:
                 files.append(readFile(i))
             for i in range(3):
-                files[i] = processText(files[i])
+                files[i] = splitText(files[i])
             # Check if user already exists
             for i in range(len(files[2])):
                 if files[2][i][0] == username:
@@ -353,8 +334,8 @@ def usuario(args):
                     return SHELL_STATUS_RUN
 
             # Get new user ID group ID
-            userID = getNewUserID()
-            groupID = getNewGroupID()
+            userId = generateuserId()
+            groupId = generategroupId()
 
             # New home directory for User
             homePath = "/home/" + username 
@@ -363,6 +344,7 @@ def usuario(args):
 
             # Ask Personal information
             fullname=input("Fullname: ")
+            ip = str(socket.gethostbyname(socket.gethostname()))
             workphone=input("Workphone:")
             cellphone=input("Personal Cellphone: ")
             sWork=input("Start work time HH:MM: ")
@@ -376,17 +358,16 @@ def usuario(args):
             epoch = int(time.time())
             # The information is written in the corresponding files
             files[0].write(f"{username}:!:{epoch}:0:99999:7:::\n")
-            files[1].write(f"{username}:!:{userID}:{groupID}:{fullname},{workphone},{cellphone},{sWork},{oWork}:{homePath}:/bin/bash\n")
-            files[2].write(f"{username}:x:{groupID}:\n")
+            files[1].write(f"{username}:!:{userId}:{groupId}:{fullname},{ip},{workphone},{cellphone},{sWork},{oWork}:{homePath}:/bin/bash\n")
+            files[2].write(f"{username}:x:{groupId}:\n")
+            userCommands('usuario '+args[0])
         else:
             print("usuario: User does not have root privileges")
             sysError_logger.error("usuario: User does not have root privileges")
 
     return SHELL_STATUS_RUN
 
-################################################################################
-# shutil.chown used to change the owner and /or group of the specified path. 
-
+# 8. propietario command: Changes the owner and /or group of the specified path. 
 def propietario(args):
     if len(args) > 3:
         print("propietario: Too many arguments")
@@ -395,27 +376,25 @@ def propietario(args):
         print("propietario: Missing arguments")
         sysError_logger.error("propietario: Missing arguments")
     else:
-        path = os.path.abspath(args[0])
-        # Check if User exists
+        path = os.path.abspath(args[0]) # args[0] --> path
         user = args[1]
         try:
-            pwd.getpwnam(user)
+            pwd.getpwnam(user) # Check if User exists
         except KeyError:
             print("propietario: User does not exist")
             sysError_logger.error("propietario: User does not exist")
             return SHELL_STATUS_RUN
         try: 
-            # Make changes
             shutil.chown(path, user, user)
+            userCommands('propietario '+args[0]+' '+args[1])
         except Exception as er:       
             sysError_logger.exception(er)
             print(er)
 
     return SHELL_STATUS_RUN   
 
-################################################################################
+# 9. contrasenha command: Sets and changes the password of a user.
 def contrasenha(args):
-    # Argument verifications
     if len(args) > 1:
         print("contrasenha: Too many arguments")
         sysError_logger.error("contrasenha: Too many arguments")
@@ -425,48 +404,43 @@ def contrasenha(args):
     else:        
         # Check if current user is root
         if os.geteuid() == 0:
-
             # Set variables
             username = args[0]
             paths = ["/etc/shadow","/etc/passwd"]
-            userColumnShadow = 0
-            userColumnPasswd = 0
+            userColShadow = 0
+            userColPasswd = 0
             fileStrings = [0,0]
             fileAttributes = [0,0]     
-
             # Read files
             for i in range(2):
                 fileStrings[i] = readFile(paths[i])
-                fileAttributes[i] = processText(fileStrings[i])
+                fileAttributes[i] = splitText(fileStrings[i])
             # Check if user exists in files
             for i in range(len(fileAttributes[0])):
                 if fileAttributes[0][i][0] == username:
-                    userColumnShadow = i
+                    userColShadow = i
             for i in range(len(fileAttributes[1])):
                 if fileAttributes[1][i][0] == username:
-                    userColumnPasswd = i    
+                    userColPasswd = i    
             # If user is found in files      
-            if userColumnShadow != 0 or userColumnPasswd != 0:
+            if userColShadow != 0 or userColPasswd != 0:
                 # Ask for password
                 password = getpass.getpass()
                 # Crypt password
                 newHash = hash_password(password)
-
                 # Update arrays 
-                fileStrings[0][userColumnShadow] = f"{username}:{newHash}:{fileAttributes[0][userColumnShadow][2]}:{fileAttributes[0][userColumnShadow][3]}:{fileAttributes[0][userColumnShadow][4]}:{fileAttributes[0][userColumnShadow][5]}:::"
-                fileStrings[1][userColumnPasswd] = f"{username}:x:{fileAttributes[1][userColumnPasswd][2]}:{fileAttributes[1][userColumnPasswd][3]}:{fileAttributes[1][userColumnPasswd][4]}:{fileAttributes[1][userColumnPasswd][5]}:{fileAttributes[1][userColumnPasswd][6]}"
-
-                passwdFalso = open("/etc/passwd","w+")
-                #Actualizamos los archivos passwd y shadow
+                fileStrings[0][userColShadow] = f"{username}:{newHash}:{fileAttributes[0][userColShadow][2]}:{fileAttributes[0][userColShadow][3]}:{fileAttributes[0][userColShadow][4]}:{fileAttributes[0][userColShadow][5]}:::"
+                fileStrings[1][userColPasswd] = f"{username}:x:{fileAttributes[1][userColPasswd][2]}:{fileAttributes[1][userColPasswd][3]}:{fileAttributes[1][userColPasswd][4]}:{fileAttributes[1][userColPasswd][5]}:{fileAttributes[1][userColPasswd][6]}"
+                passwdFake = open("/etc/passwd","w+")
+                # Update passwd & shadow files
                 for i in range(len(fileStrings[1])):
-                    passwdFalso.write(fileStrings[1][i])
-                    passwdFalso.write("\n")
-
-                shadowFalso = open("/etc/shadow","w+")
+                    passwdFake.write(fileStrings[1][i])
+                    passwdFake.write("\n")
+                shadowFake = open("/etc/shadow","w+")
                 for i in range(len(fileStrings[0])):    
-                    shadowFalso.write(fileStrings[0][i])
-                    shadowFalso.write("\n")
-                
+                    shadowFake.write(fileStrings[0][i])
+                    shadowFake.write("\n")
+                userCommands('contrasenha '+args[0])
             else:
                 print("contrasenha: User does not exist")
                 sysError_logger.error("contrasenha: User does not exist")         
@@ -475,7 +449,8 @@ def contrasenha(args):
             sysError_logger.error("usuario: User does not have root privileges")
 
     return SHELL_STATUS_RUN
-################################################################################
+
+# help command: Prints list of all built-in commands.
 def ayuda(args):
     cm1 = """
     copiar: copiar /path/to/File /path/to/Destination
@@ -525,6 +500,18 @@ def ayuda(args):
     difer: difer /path/to/file1 /path/to/file2
     Compares two given files line by line and prints differences.
     """
+    cm13 = """
+    doFTP: ftp domain.com
+    Transfers files to and from a remote network.
+    """
+    cm14 = """
+    demonio: demonio levantar/apagar pid
+    Runs and kills daemons by id.
+    """
+    cm15 = """
+    doShell: doShell unixCommand
+    Allows the use of system commands. 
+    """
     # Argument verifications
     if len(args) > 1:
         print("help: Too many arguments")
@@ -532,6 +519,7 @@ def ayuda(args):
     elif len(args) == 0:
         print("AYUDA")
         print(f"{cm1}\n{cm2}\n{cm3}\n{cm4}\n{cm5}\n{cm6}\n{cm7}\n{cm8}\n{cm9}\n{cm10}\n{cm11}\n{cm12}\n")
+        userCommands('ayuda ')
     else:  
         print("AYUDA")
         if args[0] == "copiar": print(cm1)
@@ -545,18 +533,25 @@ def ayuda(args):
         if args[0] == "contrasenha": print(cm9)  
         if args[0] == "usuario": print(cm10)  
         if args[0] == "grupos": print(cm11)  
-        if args[0] == "difer": print(cm12)       
+        if args[0] == "difer": print(cm12)
+        if args[0] == "doFTP": print(cm13)  
+        if args[0] == "demonios": print(cm14)
+        if args[0] == "doShell": print(cm15)     
+        userCommands('ayuda '+args[0])   
     return SHELL_STATUS_RUN
-################################################################################
+
+# 14. doFTP command: transfers files to and from a remote network.
 def doFTP(args):
     try:
         os.system(args)
         userTransfer(args)
+        userCommands('ftp ')
     except Exception as e:
         print(e)
         sysError_logger.error(e)
     return SHELL_STATUS_RUN
-################################################################################
+
+# 11. demonio command: runs and kills daemons by id.
 def demonio(args):
     # Argument verifications
     if len(args) > 3:
@@ -569,6 +564,7 @@ def demonio(args):
         if(args[0]=='levantar'):
             try:
                 subprocess.Popen(args[1])
+                userCommands('demonio '+args[0]+' '+args[1])
             except Exception as e:
                 print(e)
                 sysError_logger.error(e)
@@ -578,27 +574,26 @@ def demonio(args):
                 pid=int(args[1])
                 os.kill(pid, signal.SIGTERM)
                 os.kill(pid, signal.SIGKILL)
+                userCommands('demonio '+args[0]+' '+args[1])
             except Exception as e:
                 print(e)
                 sysError_logger.error(e)
                 print('Demonio: Non valid argument.')
     return SHELL_STATUS_RUN
-################################################################################
-# Para ejecutar comandos del sistema 
+
+# 12. doShell command: allows to use system commands. 
 def doShell(args):
-    # Argument verifications
     if len(args) < 1:
         print("doShell: Missing arguments")
         sysError_logger.error("doShell: Missing arguments")
     else:
-        # Turn List to String
-        # using list comprehension
-        str1 = ' '.join(map(str, args))
+        str1 = ' '.join(map(str, args)) 
         output = os.popen(str1).read()
         print (output)
+        userCommands('doShell ')
 
     return SHELL_STATUS_RUN
-################################################################################
+
 # Hash map to store built-in function name and reference as key and value
 built_in_cmds = {}
 
@@ -642,7 +637,6 @@ def execute(cmd_tokens):
 
     # Return status indicating to wait for next command in shell_loop
     return SHELL_STATUS_RUN
-
 
 #Display a command prompt as `[<user>@<hostname> <dir>]$ `
 def display_cmd_prompt():
@@ -706,7 +700,7 @@ def init():
     register_command("propietario", propietario)
     register_command("contrasenha", contrasenha)
     register_command("ayuda", ayuda)
-    register_command("DOftp", doFTP)
+    register_command("doFTP", doFTP)
     register_command("demonio", demonio)
     register_command("doShell", doShell)
 

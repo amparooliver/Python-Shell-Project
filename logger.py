@@ -32,3 +32,12 @@ usuTransfer_logger_file_handler = FileHandler(USUARIO_TRANSFERENCIAS_LOG_FILE)
 usuTransfer_logger_file_handler.setLevel(LOG_LEVEL)
 usuTransfer_logger_file_handler.setFormatter(Formatter(LOG_FORMAT))
 usuTransfer_logger.addHandler(usuTransfer_logger_file_handler)
+
+# Usuario Horarios logger NO OLVIDAR CAMBIAR DIRECCION 
+USUARIO_COMANDOS_LOG_FILE = "/home/aoliver/Documents/Shell_registro.log"
+usuComandos_logger = logging.getLogger("home.aoliver.Documents.hola.Shell_registro")
+usuComandos_logger.setLevel(LOG_LEVEL)
+usuComandos_logger_file_handler = FileHandler(USUARIO_COMANDOS_LOG_FILE)
+usuComandos_logger_file_handler.setLevel(LOG_LEVEL)
+usuComandos_logger_file_handler.setFormatter(Formatter(LOG_FORMAT))
+usuComandos_logger.addHandler(usuComandos_logger_file_handler)
