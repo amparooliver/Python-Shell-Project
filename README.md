@@ -103,4 +103,26 @@ Se utiliza para comparar dos archivos linea por linea.
 ```sh
 difer file1 /path/to/file2
 ```
+### doFTP
+Se utiliza para tranferir archivos desde una network remota.
+>Sintaxis: doFtp domain
+
+```sh
+ftp domain.com
+```
+### Demonio
+Se utiliza para levantar/apagar demonios.
+>Sintaxis: demonio levantar/apagar pid
+
+```sh
+demonio apagar 708
+```
+### doShell
+Se utiliza para poder ejecutar cualquier comando del sistema.
+>Sintaxis: doShell unixCommand
+
+```sh
+doShell ls -l
+```
+
 
