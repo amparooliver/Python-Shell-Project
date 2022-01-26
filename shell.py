@@ -1,10 +1,8 @@
 #!/usr/bin/python3
-import binascii
 import crypt
+import datetime
 import difflib
-import ftplib
 import getpass
-import hashlib
 import os
 import pwd
 import random
@@ -16,15 +14,14 @@ import string
 import subprocess
 import sys
 import time
-import datetime
 
 # CONSTANTS
 SHELL_STATUS_STOP = 0
 SHELL_STATUS_RUN = 1
 
 # Loggers
-from logger import sysError_logger, usuario_logger, usuTransfer_logger, usuComandos_logger
-
+from logger import (sysError_logger, usuario_logger, usuComandos_logger,
+                    usuTransfer_logger)
 
 # FUNCTIONS #
 # Function to register user login
