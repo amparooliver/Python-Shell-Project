@@ -2,6 +2,7 @@
 import crypt
 import datetime
 import difflib
+import ftplib
 import getpass
 import os
 import pwd
@@ -28,25 +29,21 @@ from logger import (sysError_logger, usuario_logger, usuComandos_logger,
 def userLogin():
     user = getpass.getuser()
     ip = str(socket.gethostbyname(socket.gethostname()))
-    currentDate = datetime.datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
-    str1 =' LOGIN REGISTER: username: ' + user + ' IP:' + ip + ' date:' + currentDate + '\n'  
+    str1 =' LOGIN REGISTER: username: ' + user + ' IP:' + ip + ' date:' + '\n'  
     usuario_logger.info(str1)
 
 # Function to register user logout
 def userLogout():
     user = getpass.getuser()
     ip = str(socket.gethostbyname(socket.gethostname()))
-    currentDate = datetime.datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
-    str1 =' LOGOUT REGISTER: username: ' + user + ' IP:' + ip + ' date:' + currentDate + '\n'  
+    str1 =' LOGOUT REGISTER: username: ' + user + ' IP:' + ip + ' date:' + '\n'  
     usuario_logger.info(str1)
 
 # Function to register user transfers (ftp / scp)
 def userTransfer(args):
     user = getpass.getuser()
-    currentDate = datetime.datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
-    str1 = ' '.join(map(str, args)) 
-    str2 =' USER TRANSFER REGISTER (ftp/scp): username: ' + user + ' date:' + currentDate + ' command:' + str1 + '\n'  
-    usuTransfer_logger.info(str2)
+    str1 =' USER TRANSFER REGISTER (ftp/scp): username: ' + user + ' date:' + ' command:' + args + '\n'  
+    usuTransfer_logger.info(str1)
 
 # Function to register user commands
 def userCommands(args):
@@ -76,30 +73,17 @@ def splitText(file):
         listFile[i] = listFile[i].split(':')
     return listFile
 
-# Function that generates a new User Id 
+# Function that generates a new User Id (Linux starts at 1000)
 def generateuserId():
-    passwd = open("/etc/passwd","r")
-    userId = 0
-    passwd = readFile("/etc/passwd")  
-    for i in range(len(passwd)):
-        passwd[i] = passwd[i].split(':')
-    for i in range(len(passwd)):
-        if userId < int(passwd[i][2]):
-            userId = int(passwd[i][2])
-    return userId + 1
-
-# Function that generates new Group Id
-def generategroupId():
-    groupId = 0
-    with open("/etc/group") as file:
-        group = file.readlines()
-        group = [group.rstrip() for group in group]
-    for i in range(len(group)):
-        group[i] = group[i].split(':')
-    for i in range(len(group)):
-        if groupId < int(group[i][2]):
-            groupId = int(group[i][2])
-    return groupId + 1
+    userId = 1000
+    file = readFile("/etc/passwd")  
+    for i in range(len(file)):
+        file[i] = file[i].split(':')
+    for i in range(len(file)):
+        if userId < int(file[i][2]):
+            userId = int(file[i][2])
+    userId = userId + 1
+    return userId
 
 # COMMANDS #
 # exit command: Stops the Shell from running
@@ -318,46 +302,52 @@ def usuario(args):
         if os.geteuid() == 0:
             # Set variables
             username = args[0]
-            paths = ["/etc/shadow","/etc/passwd","/etc/group"]
             files = []
-            for i in paths:
-                files.append(readFile(i))
+            files.append(readFile("/etc/shadow"))
+            files.append(readFile("/etc/passwd"))
+            files.append(readFile("/etc/group"))
             for i in range(3):
                 files[i] = splitText(files[i])
-            # Check if user already exists
-            for i in range(len(files[2])):
-                if files[2][i][0] == username:
+            # Check if username already exists
+            for i in range(len(files[1])):
+                # 1 --> "/etc/passwd" // i --> to check line by line // 0 --> position of username 
+                if files[1][i][0] == username:
                     sysError_logger.error(username + " already exists")
                     return SHELL_STATUS_RUN
-
             # Get new user ID group ID
             userId = generateuserId()
-            groupId = generategroupId()
-
+            groupId = userId # By default, it usually is the same
             # New home directory for User
             homePath = "/home/" + username 
-            if(os.path.exists(homePath) == False):
+            if(os.path.exists("/home/" + username) == 0):
                 os.mkdir(homePath,int('755',8))
-
+            # Ask for password
+            password = getpass.getpass()
+            # Crypt password
+            newHash = hash_password(password)
             # Ask Personal information
             fullname=input("Fullname: ")
             ip = str(socket.gethostbyname(socket.gethostname()))
-            workphone=input("Workphone:")
-            cellphone=input("Personal Cellphone: ")
             sWork=input("Start work time HH:MM: ")
             sWork=sWork.replace(":","")
             oWork=input("Off-work time HH:MM: ")
             oWork=oWork.replace(":","")
             # Append to files
-            for i in range(3):
-                files[i] = open(paths[i],"a+")
-
+            files[0] = open("/etc/shadow","a+")
+            files[1] = open("/etc/passwd","a+")
+            files[2] = open("/etc/group","a+")
             epoch = int(time.time())
             # The information is written in the corresponding files
-            files[0].write(f"{username}:!:{epoch}:0:99999:7:::\n")
-            files[1].write(f"{username}:!:{userId}:{groupId}:{fullname},{ip},{workphone},{cellphone},{sWork},{oWork}:{homePath}:/bin/bash\n")
+            # username: login name // newHash: password // epoch: last passwd change // 0: minimum // 99999: maximum // 7: warn
+            files[0].write(f"{username}:{newHash}:{epoch}:0:99999:7:::\n")
+            # username: login name // x: passw // userId: UID// groupId: GID // User ID Info GECOS // Home directory // Command/shell
+            files[1].write(f"{username}:x:{userId}:{groupId}:{fullname},{ip},{sWork},{oWork}:{homePath}:/bin/bash\n")
+            # username: group name // x: passw // groupId: GID 
             files[2].write(f"{username}:x:{groupId}:\n")
             userCommands('usuario '+args[0])
+            files[0].close()
+            files[1].close()
+            files[2].close()
         else:
             print("usuario: User does not have root privileges")
             sysError_logger.error("usuario: User does not have root privileges")
@@ -442,8 +432,8 @@ def contrasenha(args):
                 print("contrasenha: User does not exist")
                 sysError_logger.error("contrasenha: User does not exist")         
         else:
-            print("usuario: User does not have root privileges")
-            sysError_logger.error("usuario: User does not have root privileges")
+            print("contrasenha: User does not have root privileges")
+            sysError_logger.error("contrasenha: User does not have root privileges")
 
     return SHELL_STATUS_RUN
 
@@ -539,13 +529,18 @@ def ayuda(args):
 
 # 14. doFTP command: transfers files to and from a remote network.
 def doFTP(args):
-    try:
-        os.system(args)
-        userTransfer(args)
-        userCommands('ftp ')
-    except Exception as e:
-        print(e)
-        sysError_logger.error(e)
+    if len(args) < 1:
+        print("doFTP: Missing arguments")
+        sysError_logger.error("doFTP: Missing arguments")
+    else:
+        try:
+            str1 = ' '.join(map(str, args)) 
+            os.system(str1)
+            userTransfer(str1)
+            userCommands('ftp '+str1)
+        except Exception as e:
+            print(e)
+            sysError_logger.error(e)
     return SHELL_STATUS_RUN
 
 # 11. demonio command: runs and kills daemons by id.
@@ -587,7 +582,8 @@ def doShell(args):
         str1 = ' '.join(map(str, args)) 
         output = os.popen(str1).read()
         print (output)
-        userCommands('doShell ')
+        str1 = ' '.join(map(str, args))
+        userCommands('doShell '+ str1)
 
     return SHELL_STATUS_RUN
 
