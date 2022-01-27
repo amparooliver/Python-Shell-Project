@@ -76,7 +76,7 @@ Se utiliza para cambiar el propietario de un archivo o directorio.
 propietario thisUser Example.txt
 ```
 ### Contraseña
-Se utiliza para enlazar una contraseña a un usuario o cambiar la contraseña.
+Se utiliza para cambiar la contraseña de un usuario.
 >Sintaxis: contrasenha usuario
 
 ```sh
