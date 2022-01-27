@@ -159,7 +159,7 @@ def listar(args):
             return SHELL_STATUS_RUN
     try: 
         dir_list = os.listdir(path) 
-        userCommands(" ".join(['listar', path))
+        userCommands(" ".join(['listar', path]))
         print(dir_list)
     except OSError as error: 
         print(error)
