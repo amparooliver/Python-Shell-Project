@@ -1,10 +1,49 @@
-# Manual de Uso
-
 ## _SHELL_
 
 - Universidad Catolica "Nuestra Señora de la Asunción"
 
 - Enero 2022
+
+## Manual de Instalacion
+### Paso 1
+Para este paso, es necesario contar con git. Desde ubuntu, clonar el repositorio https://github.com/amparooliver/SO1.git en directorio a eleccion.
+### Paso 2
+Aun desde ubuntu y root, mover shell.py y logger.py a $LFS/usr/local/bin y darle permisos de ejecucion.
+```sh
+mv /path/to/shell.py $LFS/usr/local/bin
+mv /path/to/logger.py $LFS/usr/local/bin
+chmod 755  $LFS/usr/local/bin/shell.py
+chmod 755  $LFS/usr/local/bin/logger.py
+``` 
+### Paso 3
+Crear el directorio para el logger
+```sh
+mkdir -v $LFS/var/log/shell
+```
+### Paso 4
+Crear los archivos necesarios para los logger y darle permisos.
+```sh
+touch $LFS/var/log/shell/sistema_error.log
+touch $LFS/var/log/shell/usuario_horarios_log.log
+touch $LFS/var/log/shell/Shell_transferencias.log
+touch $LFS/var/log/shell/Shell_registro.log
+chmod 777 $LFS/var/log/shell/sistema_error.log
+chmod 777 $LFS/var/log/shell/usuario_horarios_log.log
+chmod 777 $LFS/var/log/shell/Shell_transferencias.log
+chmod 777 $LFS/var/log/shell/Shell_registro.log
+```
+### Paso 5
+Entrar al ambiente de LFS (siguiendo los pasos del libro de LFS), modificar el archivo /etc/shells y agregar el path del shell.py 
+```sh
+/usr/local/bin/shell.py
+```
+### Paso 6
+Modificar el archivo /etc/passwd y asignarle al usuario root la shell. En este caso:
+```sh
+root: ...........:/usr/local/bin/shell.py
+```
+### Paso 7
+Reiniciar el sistema e ingresar a el usuario root. 
 
 ## Manual de Uso
 ## Comandos
